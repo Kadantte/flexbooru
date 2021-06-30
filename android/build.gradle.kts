@@ -60,7 +60,7 @@ android {
         minSdk = 21
         targetSdk = 30
         versionCode = verCode
-        versionName = "2.7.1"
+        versionName = "2.7.7"
         versionNameSuffix = ".c$verCode"
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -102,9 +102,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
         freeCompilerArgs = freeCompilerArgs + listOf(
-            "-Xopt-in=kotlinx.serialization.ExperimentalSerializationApi",
             "-Xopt-in=kotlin.ExperimentalStdlibApi",
-            "-Xopt-in=kotlinx.coroutines.DelicateCoroutinesApi"
+            "-Xopt-in=kotlinx.serialization.ExperimentalSerializationApi",
+            "-Xopt-in=kotlinx.coroutines.DelicateCoroutinesApi",
+            "-Xopt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-Xopt-in=kotlinx.coroutines.FlowPreview",
+            "-Xopt-in=androidx.paging.ExperimentalPagingApi"
         )
     }
     kapt {
@@ -123,7 +126,7 @@ android {
         viewBinding = true
     }
     lintOptions {
-        isAbortOnError = false
+        disable("DialogFragmentCallbacksDetector")
     }
 }
 
@@ -140,7 +143,7 @@ dependencies {
     val exoplayerVersion = ext.get("exoplayer_version") as String
     val okhttpVersion = ext.get("okhttp_version") as String
     val retrofitVersion = ext.get("retrofit_version") as String
-    val tikxmlVersion = ext.get("tikxml_version") as String
+    val xmlutilVersion = ext.get("xmlutil_version") as String
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.1.5")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
@@ -154,10 +157,10 @@ dependencies {
     implementation("org.kodein.di:kodein-di-framework-android-x:$kodeinVersion")
     implementation("androidx.annotation:annotation:1.3.0-alpha01")
     implementation("androidx.appcompat:appcompat:1.4.0-alpha02")
-    implementation("androidx.activity:activity-ktx:1.3.0-beta01")
-    implementation("androidx.fragment:fragment-ktx:1.4.0-alpha02")
+    implementation("androidx.activity:activity-ktx:1.3.0-beta02")
+    implementation("androidx.fragment:fragment-ktx:1.4.0-alpha03")
     implementation("androidx.preference:preference-ktx:1.1.1")
-    implementation("androidx.core:core-ktx:1.6.0-beta02")
+    implementation("androidx.core:core-ktx:1.6.0-rc01")
     implementation("androidx.recyclerview:recyclerview:1.2.1")
     implementation("androidx.viewpager2:viewpager2:1.1.0-alpha01")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
@@ -184,7 +187,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-service:$lifecycleVersion")
     // optional - ProcessLifecycleOwner provides a lifecycle for the whole application process
     implementation("androidx.lifecycle:lifecycle-process:$lifecycleVersion")
-    implementation("androidx.paging:paging-runtime-ktx:2.1.2")
+    implementation("androidx.paging:paging-runtime-ktx:3.1.0-alpha01")
     implementation("androidx.work:work-runtime-ktx:$workVersion")
     implementation("com.google.android.material:material:1.4.0-rc01")
     implementation("com.google.android:flexbox:2.0.1")
@@ -197,7 +200,7 @@ dependencies {
     implementation("com.google.zxing:core:3.4.1")
     implementation("xyz.belvi.mobilevision:barcodescanner:2.0.3")
     implementation("com.google.firebase:firebase-analytics-ktx:19.0.0")
-    implementation("com.google.firebase:firebase-crashlytics:18.0.1")
+    implementation("com.google.firebase:firebase-crashlytics:18.1.0")
     implementation("com.google.android.gms:play-services-vision:20.1.3")
     implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
     implementation("com.android.billingclient:billing:4.0.0")
@@ -213,15 +216,13 @@ dependencies {
     kapt("com.github.bumptech.glide:compiler:$glideVersion")
     implementation("com.google.android.exoplayer:exoplayer-core:$exoplayerVersion")
     implementation("com.google.android.exoplayer:exoplayer-ui:$exoplayerVersion")
-    implementation("com.tickaroo.tikxml:annotation:$tikxmlVersion")
-    implementation("com.tickaroo.tikxml:core:$tikxmlVersion")
-    implementation("com.tickaroo.tikxml:retrofit-converter:$tikxmlVersion")
-    kapt("com.tickaroo.tikxml:processor:$tikxmlVersion")
+    implementation("io.github.pdvrieze.xmlutil:core-android:$xmlutilVersion")
+    implementation("io.github.pdvrieze.xmlutil:serialization-android:$xmlutilVersion")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.5.1")
     androidTestImplementation("androidx.work:work-testing:$workVersion")
-    androidTestImplementation("androidx.test:core:1.4.0-beta01")
-    androidTestImplementation("androidx.test.ext:junit:1.1.3-beta01")
-    androidTestImplementation("androidx.test:runner:1.4.0-beta01")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0-beta01")
+    androidTestImplementation("androidx.test:core:1.4.0-rc01")
+    androidTestImplementation("androidx.test.ext:junit:1.1.3-rc01")
+    androidTestImplementation("androidx.test:runner:1.4.0-rc01")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0-rc01")
 }

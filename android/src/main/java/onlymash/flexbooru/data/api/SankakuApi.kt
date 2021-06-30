@@ -43,43 +43,59 @@ interface SankakuApi {
     @GET
     suspend fun getTags(@Url httpUrl: HttpUrl): Response<List<TagSankaku>>
 
-    @FormUrlEncoded
+    @Headers("Content-Type: application/json; charset=utf-8")
     @POST
-    suspend fun favPost(@Url url: String,
-                     @Field("id") postId: Int,
-                     @Field("login") username: String,
-                     @Field("password_hash") passwordHash: String): Response<VoteSankaku>
+    suspend fun favPost(
+        @Url url: HttpUrl,
+        @Header(Keys.HEADER_AUTH) auth: String): Response<VoteSankaku>
 
-    @FormUrlEncoded
-    @HTTP(method = "POST", hasBody = true)
-    suspend fun removeFavPost(@Url url: String,
-                           @Field("id") postId: Int,
-                           @Field("login") username: String,
-                           @Field("password_hash") passwordHash: String): Response<VoteSankaku>
+    @Headers("Content-Type: application/json; charset=utf-8")
+    @DELETE
+    suspend fun removeFavPost(
+        @Url url: HttpUrl,
+        @Header(Keys.HEADER_AUTH) auth: String): Response<VoteSankaku>
 
-
+    @Headers("Content-Type: application/json; charset=utf-8")
     @GET
-    suspend fun getComments(@Url url: HttpUrl): Response<List<CommentSankaku>>
+    suspend fun getPostsComments(
+        @Url url: HttpUrl,
+        @Header(Keys.HEADER_AUTH) auth: String): Response<List<CommentSankaku>>
+
+    @Headers("Content-Type: application/json; charset=utf-8")
+    @GET
+    suspend fun getPostComments(
+        @Url url: HttpUrl,
+        @Header(Keys.HEADER_AUTH) auth: String): Response<List<CommentSankakuItem>>
 
     /* comment/create.json
      */
+    @Headers("Content-Type: application/json; charset=utf-8")
     @POST
-    @FormUrlEncoded
-    suspend fun createComment(@Url url: String,
-                      @Field("comment[post_id]") postId: Int,
-                      @Field("comment[body]") body: String,
-                      @Field("comment[anonymous]") anonymous: Int,
-                      @Field("login") username: String,
-                      @Field("password_hash") passwordHash: String): Response<BoolResponse>
-
+    suspend fun createComment(
+        @Url url: HttpUrl,
+        @Body comment: CommentBody,
+        @Header(Keys.HEADER_AUTH) auth: String): Response<BoolResponse>
 
 
     /* comment/destroy.json
      */
-    @FormUrlEncoded
-    @HTTP(method = "DELETE", hasBody = true)
-    suspend fun destroyComment(@Url url: String,
-                       @Field("id") commentId: Int,
-                       @Field("login") username: String,
-                       @Field("password_hash") passwordHash: String): Response<BoolResponse>
+    @Headers("Content-Type: application/json; charset=utf-8")
+    @DELETE
+    suspend fun destroyComment(
+        @Url url: HttpUrl,
+        @Header(Keys.HEADER_AUTH) auth: String): Response<BoolResponse>
+
+    @Headers("Content-Type: application/json")
+    @POST
+    suspend fun login(
+        @Url url: HttpUrl,
+        @Body loginBody: LoginBody
+    ): Response<UserSankaku>
+
+    @Headers("Content-Type: application/json")
+    @POST
+    suspend fun refreshToken(
+        @Url url: HttpUrl,
+        @Body refreshTokenBody: RefreshTokenBody
+    ): Response<UserSankaku>
 }

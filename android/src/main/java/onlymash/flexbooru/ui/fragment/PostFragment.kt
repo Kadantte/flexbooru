@@ -16,7 +16,6 @@
 package onlymash.flexbooru.ui.fragment
 
 import android.app.Activity
-import android.app.DatePickerDialog
 import android.content.*
 import android.os.Build
 import android.os.Bundle
@@ -30,15 +29,22 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.SharedElementCallback
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
-import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.flexbox.AlignItems
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayoutManager
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.DateValidatorPointBackward
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import onlymash.flexbooru.R
 import onlymash.flexbooru.animation.RippleAnimation
@@ -77,15 +83,16 @@ import onlymash.flexbooru.data.model.common.Booru
 import onlymash.flexbooru.data.model.common.Post
 import onlymash.flexbooru.data.model.common.TagFilter
 import onlymash.flexbooru.data.repository.favorite.VoteRepositoryImpl
-import onlymash.flexbooru.data.repository.isRunning
 import onlymash.flexbooru.data.repository.post.PostRepositoryImpl
 import onlymash.flexbooru.data.repository.tagfilter.TagFilterRepositoryImpl
+import onlymash.flexbooru.extension.asMergedLoadStates
 import onlymash.flexbooru.extension.rotate
 import onlymash.flexbooru.glide.GlideApp
 import onlymash.flexbooru.ui.activity.DetailActivity
 import onlymash.flexbooru.ui.activity.SauceNaoActivity
 import onlymash.flexbooru.ui.activity.SearchActivity
 import onlymash.flexbooru.ui.adapter.PostAdapter
+import onlymash.flexbooru.ui.adapter.StateAdapter
 import onlymash.flexbooru.ui.adapter.TagFilterAdapter
 import onlymash.flexbooru.ui.base.PathActivity
 import onlymash.flexbooru.ui.base.SearchBarFragment
@@ -94,7 +101,6 @@ import onlymash.flexbooru.ui.viewmodel.TagFilterViewModel
 import onlymash.flexbooru.ui.viewmodel.getPostViewModel
 import onlymash.flexbooru.ui.viewmodel.getTagFilterViewModel
 import onlymash.flexbooru.util.ViewTransition
-import onlymash.flexbooru.widget.DateRangePickerDialogFragment
 import onlymash.flexbooru.widget.searchbar.SearchBar
 import onlymash.flexbooru.worker.DownloadWorker
 import org.kodein.di.instance
@@ -186,34 +192,31 @@ class PostFragment : SearchBarFragment() {
                     DetailActivity.start(it, query, position, view, tranName)
                 }
             },
-            longClickItemCallback = { handleLongClick(it) },
-            retryCallback = { postViewModel.retry() }
+            longClickItemCallback = { handleLongClick(it) }
         )
         setupListPadding(isRoundedGrid)
         mainList.apply {
             layoutManager = StaggeredGridLayoutManager(spanCount, RecyclerView.VERTICAL)
-            adapter = postAdapter
+            adapter = postAdapter.withLoadStateFooterSafe(StateAdapter(postAdapter))
         }
-        postViewModel.posts.observe(viewLifecycleOwner, Observer { postList ->
-            postList?.let {
-                postAdapter.submitList(it)
-                if (progressBar.isVisible && it.size > 0) {
-                    progressBar.isVisible = false
-                }
+        postAdapter.addLoadStateListener { loadStates ->
+            swipeRefresh.isRefreshing = loadStates.mediator?.refresh is LoadState.Loading
+            progressBarHorizontal.isVisible = loadStates.mediator?.append is LoadState.Loading
+            updateState(loadStates.mediator?.refresh)
+        }
+        lifecycleScope.launchWhenCreated {
+            postViewModel.posts.collectLatest {
+                postAdapter.submitData(it)
             }
-        })
-        postViewModel.networkState.observe(viewLifecycleOwner, Observer {
-            postAdapter.setNetworkState(it)
-            val isRunning = it.isRunning()
-            progressBarHorizontal.isVisible = isRunning
-            progressBar.isVisible = isRunning && postAdapter.itemCount == 0
-        })
-        postViewModel.refreshState.observe(viewLifecycleOwner, Observer {
-            swipeRefresh.isRefreshing = it.isRunning()
-        })
-        swipeRefresh.setOnRefreshListener {
-            postViewModel.refresh()
         }
+        lifecycleScope.launchWhenCreated {
+            postAdapter.loadStateFlow
+                .asMergedLoadStates()
+                .distinctUntilChangedBy { it.refresh }
+                .filter { it.refresh is LoadState.NotLoading }
+                .collect { mainList.scrollToPosition(0) }
+        }
+        swipeRefresh.setOnRefreshListener { postAdapter.refresh() }
     }
 
     private fun setupListPadding(isRounded: Boolean) {
@@ -258,7 +261,17 @@ class PostFragment : SearchBarFragment() {
             action = null
             tagFilterAdapter.updateBooru(-1L, BOORU_TYPE_UNKNOWN, arrayOf(), arrayOf())
         }
-        postViewModel.show(action)
+        fetch()
+    }
+
+    private fun fetch() {
+        action?.let {
+            postViewModel.show(it)
+        }
+    }
+
+    override fun retry() {
+        postAdapter.refresh()
     }
 
     private fun initFilterList() {
@@ -276,7 +289,7 @@ class PostFragment : SearchBarFragment() {
             }
             adapter = tagFilterAdapter
         }
-        tagFilterViewModel.loadTags().observe(viewLifecycleOwner, Observer {
+        tagFilterViewModel.loadTags().observe(viewLifecycleOwner, {
             tagFilterAdapter.updateData(it)
         })
         searchLayout.findViewById<FloatingActionButton>(R.id.action_search).setOnClickListener {
@@ -332,8 +345,8 @@ class PostFragment : SearchBarFragment() {
     }
 
     private fun initDate() {
-        val calendar = Calendar.getInstance(Locale.US).apply {
-            timeInMillis = System.currentTimeMillis()
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            timeInMillis = MaterialDatePicker.todayInUtcMilliseconds()
         }
         val currentDay = calendar.get(Calendar.DAY_OF_MONTH)
         val currentMonth = calendar.get(Calendar.MONTH)
@@ -363,7 +376,12 @@ class PostFragment : SearchBarFragment() {
 
     private fun Activity.getWindowWidth(): Int {
         val outMetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(outMetrics)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            display?.getRealMetrics(outMetrics)
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getMetrics(outMetrics)
+        }
         return outMetrics.widthPixels
     }
 
@@ -492,81 +510,78 @@ class PostFragment : SearchBarFragment() {
     }
 
     private fun pickDate() {
-        val context = context ?: return
-        val currentTimeMillis = System.currentTimeMillis()
-        val minCalendar = Calendar.getInstance(Locale.US).apply {
-            timeInMillis = currentTimeMillis
-            add(Calendar.YEAR, -20)
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            set(Calendar.YEAR, date.yearEnd)
+            set(Calendar.MONTH, date.monthEnd)
+            set(Calendar.DAY_OF_MONTH, date.dayEnd)
         }
-        DatePickerDialog(
-            context,
-            DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
-                date.yearEnd = year
-                date.monthEnd = month
-                date.dayEnd = dayOfMonth
-                action?.let {
-                    it.date = date
-                    updateActionAndRefresh(it)
-                }
-            },
-            date.yearEnd,
-            date.monthEnd,
-            date.dayEnd
-        ).apply {
-            datePicker.apply {
-                minDate = minCalendar.timeInMillis
-                maxDate = currentTimeMillis
+        val selectedTime = calendar.timeInMillis
+        val calendarConstraints = CalendarConstraints.Builder()
+            .setOpenAt(selectedTime)
+            .setValidator(DateValidatorPointBackward.now())
+            .build()
+        val dialog = MaterialDatePicker.Builder.datePicker()
+            .setInputMode(MaterialDatePicker.INPUT_MODE_CALENDAR)
+            .setCalendarConstraints(calendarConstraints)
+            .setSelection(selectedTime)
+            .build()
+        dialog.addOnPositiveButtonClickListener { time ->
+            calendar.timeInMillis = time
+            date.yearEnd = calendar.get(Calendar.YEAR)
+            date.monthEnd = calendar.get(Calendar.MONTH)
+            date.dayEnd = calendar.get(Calendar.DAY_OF_MONTH)
+            action?.let {
+                it.date = date
+                updateActionAndRefresh(it)
             }
         }
-            .show()
+        dialog.show(childFragmentManager, "date_picker")
     }
 
     private fun pickDateRange() {
-        val currentTimeMillis = System.currentTimeMillis()
-        val minCalendar = Calendar.getInstance(Locale.US).apply {
-            timeInMillis = currentTimeMillis
-            add(Calendar.YEAR, -20)
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            set(Calendar.YEAR, date.yearStart)
+            set(Calendar.MONTH, date.monthStart)
+            set(Calendar.DAY_OF_MONTH, date.dayStart)
         }
-        val callback = object : DateRangePickerDialogFragment.OnDateRangeSetListener {
-            override fun onDateRangeSet(
-                startDay: Int,
-                startMonth: Int,
-                startYear: Int,
-                endDay: Int,
-                endMonth: Int,
-                endYear: Int
-            ) {
-                date.apply {
-                    dayStart = startDay
-                    monthStart = startMonth
-                    yearStart = startYear
-                    dayEnd = endDay
-                    monthEnd = endMonth
-                    yearEnd = endYear
-                }
-                action?.let {
-                    it.date = date
-                    updateActionAndRefresh(it)
-                }
+        val selectionStart = calendar.timeInMillis
+        calendar.apply {
+            set(Calendar.YEAR, date.yearEnd)
+            set(Calendar.MONTH, date.monthEnd)
+            set(Calendar.DAY_OF_MONTH, date.dayEnd)
+        }
+        val selectionEnd = calendar.timeInMillis
+        val selection = androidx.core.util.Pair(selectionStart, selectionEnd)
+        val calendarConstraints = CalendarConstraints.Builder()
+            .setOpenAt(selectionEnd)
+            .setValidator(DateValidatorPointBackward.now())
+            .build()
+        val picker = MaterialDatePicker.Builder.dateRangePicker()
+            .setTheme(R.style.MaterialCalendarTheme)
+            .setInputMode(MaterialDatePicker.INPUT_MODE_CALENDAR)
+            .setCalendarConstraints(calendarConstraints)
+            .setSelection(selection)
+            .build()
+        picker.addOnPositiveButtonClickListener { times ->
+            calendar.timeInMillis = times.first
+            date.yearStart = calendar.get(Calendar.YEAR)
+            date.monthStart = calendar.get(Calendar.MONTH)
+            date.dayStart = calendar.get(Calendar.DAY_OF_MONTH)
+            calendar.timeInMillis = times.second
+            date.yearEnd = calendar.get(Calendar.YEAR)
+            date.monthEnd = calendar.get(Calendar.MONTH)
+            date.dayEnd = calendar.get(Calendar.DAY_OF_MONTH)
+            action?.let {
+                it.date = date
+                updateActionAndRefresh(it)
             }
         }
-        DateRangePickerDialogFragment.newInstance(
-            listener = callback,
-            startDay = date.dayStart,
-            startMonth = date.monthStart,
-            startYear = date.yearStart,
-            endDay = date.dayEnd,
-            endMonth = date.monthEnd,
-            endYear = date.yearEnd,
-            minDate = minCalendar.timeInMillis,
-            maxDate = currentTimeMillis
-        )
-            .show(childFragmentManager, "DateRangePicker")
+        picker.show(childFragmentManager, "date_range_picker")
     }
 
     private fun updateActionAndRefresh(action: ActionPost) {
         postViewModel.show(action)
-        postViewModel.refresh()
+        postAdapter.refresh()
     }
 
     override fun onApplySearch(query: String) {

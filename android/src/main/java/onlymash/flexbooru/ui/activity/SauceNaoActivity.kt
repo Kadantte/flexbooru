@@ -23,11 +23,7 @@ import android.view.*
 import android.widget.EditText
 import android.widget.FrameLayout
 import androidx.appcompat.app.AlertDialog
-import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
-import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -50,7 +46,6 @@ import onlymash.flexbooru.common.saucenao.model.Result
 import onlymash.flexbooru.common.saucenao.model.SauceNaoResponse
 import onlymash.flexbooru.ui.viewmodel.SauceNaoViewModel
 import onlymash.flexbooru.ui.viewmodel.getSauceNaoViewModel
-import onlymash.flexbooru.extension.drawNavBar
 import onlymash.flexbooru.ui.base.BaseActivity
 import onlymash.flexbooru.ui.helper.OpenFileLifecycleObserver
 import onlymash.flexbooru.ui.viewbinding.viewBinding
@@ -91,13 +86,6 @@ class SauceNaoActivity : BaseActivity() {
         setContentView(binding.root)
         val list = binding.common.list
         val progressBar = binding.common.progress.progressBar
-        drawNavBar {
-            list.updatePadding(bottom = it.systemWindowInsetBottom)
-            fab.updateLayoutParams<CoordinatorLayout.LayoutParams> {
-                bottomMargin = it.systemWindowInsetBottom +
-                        resources.getDimensionPixelSize(R.dimen.margin_normal)
-            }
-        }
         supportActionBar?.apply {
             setDisplayHomeAsUpEnabled(true)
             setTitle(R.string.title_sauce_nao)
@@ -108,18 +96,18 @@ class SauceNaoActivity : BaseActivity() {
             adapter = sauceNaoAdapter
         }
         sauceNaoViewModel = getSauceNaoViewModel(api)
-        sauceNaoViewModel.data.observe(this, Observer {
+        sauceNaoViewModel.data.observe(this, {
             response = it
             supportActionBar?.subtitle = String.format(getString(R.string.sauce_nao_remaining_times_today), it.header.longRemaining)
             sauceNaoAdapter.notifyDataSetChanged()
         })
-        sauceNaoViewModel.isLoading.observe(this, Observer {
+        sauceNaoViewModel.isLoading.observe(this, {
             progressBar.isVisible = it
             if (it && errorMsg.isVisible) {
                 errorMsg.isVisible = false
             }
         })
-        sauceNaoViewModel.error.observe(this, Observer {
+        sauceNaoViewModel.error.observe(this, {
             if (!it.isNullOrBlank()) {
                 errorMsg.isVisible = true
                 errorMsg.text = it

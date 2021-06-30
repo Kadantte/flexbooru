@@ -21,7 +21,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.text.StaticLayout
-import android.util.DisplayMetrics
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
@@ -57,12 +56,6 @@ fun lerp(a: Float, b: Float, t: Float): Float {
     return a + (b - a) * t
 }
 
-fun Activity.getWindowWidth(): Int {
-    val outMetrics = DisplayMetrics()
-    windowManager.defaultDisplay.getMetrics(outMetrics)
-    return outMetrics.widthPixels
-}
-
 fun Context.safeOpenIntent(intent: Intent) {
     try {
         startActivity(intent)
@@ -95,12 +88,6 @@ fun Context.redirectToDownloadManagerSettings() {
         startActivity(intent)
         Toast.makeText(this, getString(R.string.msg_download_must_enable), Toast.LENGTH_LONG).show()
     }
-}
-
-fun Activity.getWidth(): Int {
-    val outMetrics = DisplayMetrics()
-    windowManager.defaultDisplay.getMetrics(outMetrics)
-    return outMetrics.widthPixels
 }
 
 fun Activity.openAppInMarket(packageName: String) {

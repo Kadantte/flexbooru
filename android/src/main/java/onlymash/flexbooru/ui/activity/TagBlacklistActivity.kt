@@ -21,10 +21,6 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.FrameLayout
 import androidx.appcompat.app.AlertDialog
-import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -37,7 +33,6 @@ import onlymash.flexbooru.databinding.ActivityTagBlacklistBinding
 import onlymash.flexbooru.ui.adapter.TagBlacklistAdapter
 import onlymash.flexbooru.ui.viewmodel.BooruViewModel
 import onlymash.flexbooru.ui.viewmodel.getBooruViewModel
-import onlymash.flexbooru.extension.drawNavBar
 import onlymash.flexbooru.ui.base.KodeinActivity
 import onlymash.flexbooru.ui.viewbinding.viewBinding
 import org.kodein.di.instance
@@ -53,13 +48,6 @@ class TagBlacklistActivity : KodeinActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        drawNavBar {
-            binding.list.updatePadding(bottom = it.systemWindowInsetBottom)
-            binding.fab.updateLayoutParams<CoordinatorLayout.LayoutParams> {
-                bottomMargin = it.systemWindowInsetBottom +
-                        resources.getDimensionPixelSize(R.dimen.margin_normal)
-            }
-        }
         supportActionBar?.apply {
             setDisplayHomeAsUpEnabled(true)
             setTitle(R.string.title_tag_blacklist)
@@ -77,7 +65,7 @@ class TagBlacklistActivity : KodeinActivity() {
             adapter = tagBlacklistAdapter
         }
         booruViewModel = getBooruViewModel(booruDao)
-        booruViewModel.booru.observe(this, Observer {
+        booruViewModel.booru.observe(this, {
             booru = it
             tagBlacklistAdapter.updateData(it.blacklists)
         })
@@ -106,7 +94,7 @@ class TagBlacklistActivity : KodeinActivity() {
             .setView(layout)
             .setPositiveButton(R.string.dialog_yes) { _, _ ->
                 val text = (editText.text ?: "").toString().trim()
-                if (!text.isBlank()) {
+                if (text.isNotBlank()) {
                     if (booru.blacklists.add(text)) {
                         booruViewModel.updateBooru(booru)
                     }

@@ -19,7 +19,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.Observer
 import androidx.viewbinding.ViewBinding
 import onlymash.flexbooru.app.Keys
 import onlymash.flexbooru.data.database.dao.PostDao
@@ -57,7 +56,7 @@ abstract class ShortcutFragment<T: ViewBinding> : BooruFragment<T>() {
         if (booru == null) {
             return
         }
-        shortcutViewModel.loadPost(booru.uid, postId).observe(viewLifecycleOwner, Observer {
+        shortcutViewModel.loadPost(booru.uid, postId).observe(viewLifecycleOwner, {
             onPostLoaded(it)
         })
     }

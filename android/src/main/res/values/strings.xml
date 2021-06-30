@@ -118,7 +118,6 @@
     <string name="booru_config_path">Path</string>
     <string name="booru_config_type">Type</string>
     <string name="booru_config_hash_salt">Hash salt</string>
-    <string name="booru_config_auth" translatable="false">Authorization</string>
     <string name="booru_config_name_cant_empty">The name cannot be empty.</string>
     <string name="booru_config_host_cant_empty">The host cannot be empty.</string>
     <string name="booru_config_host_invalid">Invalid host.</string>
@@ -212,6 +211,7 @@
     <string name="settings_show_info_bar">Show info bar</string>
     <string name="settings_show_all_tags">Show tags for all sites</string>
     <string name="settings_auto_hide_bottom_bar">Auto hide bottom bar</string>
+    <string name="settings_auto_refresh">Auto refresh</string>
     <string name="settings_clear_cache">Clear cache</string>
     <string name="settings_clear_cache_summery">Remove all cached files.</string>
     <string name="settings_clear_cache_dialog_content">Cached files will be cleared.</string>

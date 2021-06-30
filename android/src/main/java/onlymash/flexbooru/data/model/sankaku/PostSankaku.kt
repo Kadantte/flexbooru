@@ -39,7 +39,7 @@ data class PostSankaku(
     @SerialName("file_size")
     val fileSize: Int,
     @SerialName("file_type")
-    val fileType: String,
+    val fileType: String? = null,
     @SerialName("file_url")
     val fileUrl: String?,
     @SerialName("has_children")
@@ -114,7 +114,7 @@ data class PostSankaku(
 
     private fun List<TagSankaku>.toTags() = map { it.toTagBase() }
 
-    fun toPost(booruUid: Long, query: String, scheme: String, host: String, index: Int, isFavored: Boolean): Post {
+    fun toPost(booruUid: Long, query: String, scheme: String, host: String, index: Int): Post {
         return Post(
             booruUid = booruUid,
             query = query,
@@ -132,7 +132,7 @@ data class PostSankaku(
             medium = mediumUrl(scheme, host)  ?: "",
             origin = originUrl(scheme, host)  ?: "",
             source = source,
-            isFavored = isFavored,
+            isFavored = isFavorited,
             uploader = User(id = author.id, name = author.name, avatar = author.avatar)
         )
     }

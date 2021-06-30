@@ -19,7 +19,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.Observer
 import androidx.viewbinding.ViewBinding
 import onlymash.flexbooru.app.Settings
 import onlymash.flexbooru.data.database.dao.BooruDao
@@ -46,7 +45,7 @@ abstract class BooruFragment<T: ViewBinding> : KodeinFragment<T>() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         onBaseViewCreated(view, savedInstanceState)
-        booruViewModel.booru.observe(viewLifecycleOwner, Observer {
+        booruViewModel.booru.observe(viewLifecycleOwner, {
             onBooruLoaded(it)
         })
         booruViewModel.loadBooru(Settings.activatedBooruUid)

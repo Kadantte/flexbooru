@@ -26,13 +26,9 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Base64
 import android.view.*
-import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
-import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -61,7 +57,6 @@ import onlymash.flexbooru.common.tracemoe.model.Doc
 import onlymash.flexbooru.ui.base.BaseBottomSheetDialog
 import onlymash.flexbooru.ui.viewmodel.TraceMoeViewModel
 import onlymash.flexbooru.ui.viewmodel.getTraceMoeViewModel
-import onlymash.flexbooru.extension.drawNavBar
 import onlymash.flexbooru.ui.base.BaseActivity
 import onlymash.flexbooru.ui.helper.OpenFileLifecycleObserver
 import onlymash.flexbooru.ui.viewbinding.viewBinding
@@ -94,13 +89,6 @@ class WhatAnimeActivity : BaseActivity() {
         setContentView(binding.root)
         val list = binding.common.list
         val fab = binding.fab
-        drawNavBar {
-            list.updatePadding(bottom = it.systemWindowInsetBottom)
-            fab.updateLayoutParams<CoordinatorLayout.LayoutParams> {
-                bottomMargin = it.systemWindowInsetBottom +
-                        resources.getDimensionPixelSize(R.dimen.margin_normal)
-            }
-        }
         supportActionBar?.apply {
             setDisplayHomeAsUpEnabled(true)
             setTitle(R.string.title_what_anime)
@@ -111,7 +99,7 @@ class WhatAnimeActivity : BaseActivity() {
             adapter = whatAnimeAdapter
         }
         traceMoeViiewModel = getTraceMoeViewModel(api)
-        traceMoeViiewModel.data.observe(this, Observer { response ->
+        traceMoeViiewModel.data.observe(this, { response ->
             docs.clear()
             if (response != null) {
                 if (safeMode) {
@@ -126,13 +114,13 @@ class WhatAnimeActivity : BaseActivity() {
             }
             whatAnimeAdapter.notifyDataSetChanged()
         })
-        traceMoeViiewModel.isLoading.observe(this, Observer {
+        traceMoeViiewModel.isLoading.observe(this, {
             progressBar.isVisible = it
             if (it && errorMsg.isVisible) {
                 errorMsg.isVisible = false
             }
         })
-        traceMoeViiewModel.error.observe(this, Observer {
+        traceMoeViiewModel.error.observe(this, {
             if (!it.isNullOrBlank()) {
                 errorMsg.isVisible = true
                 errorMsg.text = it

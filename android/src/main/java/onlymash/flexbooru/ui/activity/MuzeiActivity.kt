@@ -24,12 +24,8 @@ import android.provider.BaseColumns
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.SearchView
-import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updatePadding
 import androidx.cursoradapter.widget.CursorAdapter
 import androidx.cursoradapter.widget.SimpleCursorAdapter
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -53,7 +49,6 @@ import onlymash.flexbooru.ui.viewmodel.MuzeiViewModel
 import onlymash.flexbooru.ui.viewmodel.SuggestionViewModel
 import onlymash.flexbooru.ui.viewmodel.getMuzeiViewModel
 import onlymash.flexbooru.ui.viewmodel.getSuggestionViewModel
-import onlymash.flexbooru.extension.drawNavBar
 import onlymash.flexbooru.ui.base.KodeinActivity
 import onlymash.flexbooru.ui.viewbinding.viewBinding
 import onlymash.flexbooru.worker.MuzeiArtWorker
@@ -105,11 +100,11 @@ class MuzeiActivity : KodeinActivity() {
         )
         initView()
         muzeiViewModel = getMuzeiViewModel(muzeiDao)
-        muzeiViewModel.loadMuzei(booru.uid).observe(this, Observer {
+        muzeiViewModel.loadMuzei(booru.uid).observe(this, {
             muzeiAdapter.updateData(it)
         })
         suggestionViewModel = getSuggestionViewModel(SuggestionRepositoryImpl(booruApis))
-        suggestionViewModel.suggestions.observe(this, Observer {
+        suggestionViewModel.suggestions.observe(this, {
             suggestions.clear()
             suggestions.addAll(it)
             handleSuggestions(it)
@@ -119,12 +114,6 @@ class MuzeiActivity : KodeinActivity() {
     private fun initView() {
         val list = binding.muzeiList
         val fabMuzei = binding.muzeiButton
-        drawNavBar { insets ->
-            list.updatePadding(bottom = insets.systemWindowInsetBottom)
-            fabMuzei.updateLayoutParams<CoordinatorLayout.LayoutParams> {
-                bottomMargin = resources.getDimensionPixelSize(R.dimen.margin_normal) + insets.systemWindowInsetBottom
-            }
-        }
         supportActionBar?.apply {
             setDisplayHomeAsUpEnabled(true)
             setTitle(R.string.title_muzei)

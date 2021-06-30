@@ -20,16 +20,12 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.*
 import android.view.animation.DecelerateInterpolator
-import android.widget.ImageButton
-import android.widget.ProgressBar
+import android.widget.*
 import androidx.annotation.FloatRange
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
-import androidx.core.view.updateMargins
-import androidx.core.view.updatePadding
-import androidx.lifecycle.Observer
+import androidx.core.view.*
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
@@ -72,10 +68,12 @@ abstract class SearchBarFragment : BooruFragment<FragmentSearchbarBinding>(),
     internal lateinit var mainList: RecyclerView
     internal lateinit var searchLayout: CoordinatorLayout
     internal lateinit var swipeRefresh: SwipeRefreshLayout
-    internal lateinit var progressBar: ProgressBar
     internal lateinit var progressBarHorizontal: ProgressBar
     private lateinit var searchBar: SearchBar
     private lateinit var fabToListTop: FloatingActionButton
+    private lateinit var networkStateContainer: LinearLayout
+    private lateinit var errorMsg: TextView
+    private lateinit var retryButton: Button
 
     private var systemUiBottomSize = 0
     private var systemUiTopSize = 0
@@ -92,13 +90,16 @@ abstract class SearchBarFragment : BooruFragment<FragmentSearchbarBinding>(),
         mainList = binding.refreshableList.list
         searchLayout = binding.searchLayout.searchLayoutContainer
         swipeRefresh = binding.refreshableList.swipeRefresh
-        progressBar = binding.progressCircular.progressBar
         progressBarHorizontal = binding.progressHorizontal.progressBarHorizontal
         searchBar = binding.searchBar
         fabToListTop = binding.actionToTop
-        view.setOnApplyWindowInsetsListener { _, insets ->
-            systemUiTopSize = insets.systemWindowInsetTop
-            systemUiBottomSize = insets.systemWindowInsetBottom
+        networkStateContainer = binding.networkState.networkStateContainer
+        errorMsg = binding.networkState.errorMsg
+        networkStateContainer = binding.networkState.networkStateContainer
+        ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
+            val systemBarsInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            systemUiTopSize = systemBarsInsets.top
+            systemUiBottomSize = systemBarsInsets.bottom
             searchBar.updateLayoutParams<CoordinatorLayout.LayoutParams> {
                 topMargin = resources.getDimensionPixelSize(R.dimen.search_bar_vertical_margin) + systemUiTopSize
             }
@@ -112,12 +113,27 @@ abstract class SearchBarFragment : BooruFragment<FragmentSearchbarBinding>(),
         setupFabToListTop()
         setupSwipeRefreshColor()
         initSearchBar()
-        suggestionViewModel.suggestions.observe(viewLifecycleOwner, Observer {
+        suggestionViewModel.suggestions.observe(viewLifecycleOwner, {
             searchBar.updateSuggestions(it)
         })
+        binding.networkState.retryButton.setOnClickListener {
+            retry()
+        }
         onSearchBarViewCreated(view, savedInstanceState)
         sp.registerOnSharedPreferenceChangeListener(this)
     }
+
+    fun updateState(loadState: LoadState?) {
+        if (loadState == null) return
+        if (loadState is LoadState.Error && mainList.adapter?.itemCount == 0) {
+            networkStateContainer.isVisible = true
+            errorMsg.text = loadState.error.message
+        } else {
+            networkStateContainer.isVisible = false
+        }
+    }
+
+    abstract fun retry()
 
     abstract fun onSearchBarViewCreated(view: View, savedInstanceState: Bundle?)
 

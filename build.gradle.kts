@@ -19,15 +19,15 @@ plugins {
 
 buildscript {
     extra.apply {
-        set("nav_version", "2.4.0-alpha02")
-        set("room_version", "2.4.0-alpha02")
-        set("work_version", "2.7.0-alpha03")
+        set("nav_version", "2.4.0-alpha03")
+        set("room_version", "2.4.0-alpha03")
+        set("work_version", "2.7.0-alpha04")
         set("glide_version", "4.12.0")
-        set("lifecycle_version", "2.4.0-alpha01")
-        set("exoplayer_version", "2.14.0")
+        set("lifecycle_version", "2.4.0-alpha02")
+        set("exoplayer_version", "2.14.1")
         set("okhttp_version", "4.9.0")
         set("retrofit_version", "2.9.0")
-        set("tikxml_version", "0.8.13")
+        set("xmlutil_version", "0.82.0")
         set("kodein_version", "7.6.0")
         set("coroutines_version", "1.5.0")
         set("serialization_version", "1.2.1")
@@ -35,24 +35,25 @@ buildscript {
     }
     repositories {
         google()
-        jcenter()
     }
     dependencies {
-        val kotlinVersion = "1.5.10"
+        val kotlinVersion = "1.5.20"
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath(kotlin("serialization", kotlinVersion))
         classpath("com.android.tools.build:gradle:4.2.1")
         classpath("com.google.android.gms:oss-licenses-plugin:0.10.4")
         classpath("com.google.gms:google-services:4.3.8")
-        classpath("com.google.firebase:firebase-crashlytics-gradle:2.7.0")
+        classpath("com.google.firebase:firebase-crashlytics-gradle:2.7.1")
     }
 }
 
 allprojects {
     repositories {
         google()
+        mavenCentral()
         jcenter()
         maven(url = "https://jitpack.io")
+        maven(url = "https://s01.oss.sonatype.org/content/repositories/releases/")
     }
     gradle.projectsEvaluated {
         tasks.withType(JavaCompile::class.java) {

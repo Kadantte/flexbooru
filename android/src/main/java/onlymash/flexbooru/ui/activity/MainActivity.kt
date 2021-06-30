@@ -30,11 +30,12 @@ import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.GravityCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.mikepenz.materialdrawer.holder.ImageHolder
@@ -104,7 +105,6 @@ class MainActivity : PathActivity(), SharedPreferences.OnSharedPreferenceChangeL
 
     private val binding by viewBinding(ActivityMainBinding::inflate)
 
-    private var currentBooru: Booru? = null
     private var boorus: MutableList<Booru> = mutableListOf()
 
     private val bottomNavView get() = binding.bottomNavView
@@ -123,7 +123,7 @@ class MainActivity : PathActivity(), SharedPreferences.OnSharedPreferenceChangeL
     private val drawerItemClickListener: ((v: View?, item: IDrawerItem<*>, position: Int) -> Boolean) = { _: View?, item: IDrawerItem<*>, _: Int ->
         when (item.identifier) {
             DRAWER_ITEM_ID_ACCOUNT -> {
-                currentBooru?.let {
+                booruViewModel.currentBooru?.let {
                     if (it.type != BOORU_TYPE_SHIMMIE) {
                         if (it.user == null) {
                             toActivity(AccountConfigActivity::class.java)
@@ -136,19 +136,19 @@ class MainActivity : PathActivity(), SharedPreferences.OnSharedPreferenceChangeL
                 }
             }
             DRAWER_ITEM_ID_COMMENTS -> {
-                if (currentBooru?.type != BOORU_TYPE_SHIMMIE) {
+                if (booruViewModel.currentBooru?.type != BOORU_TYPE_SHIMMIE) {
                     toActivity(CommentActivity::class.java )
                 } else {
                     notSupportedToast()
                 }
             }
             DRAWER_ITEM_ID_HISTORY -> {
-                if (currentBooru != null) {
+                if (booruViewModel.currentBooru != null) {
                     toActivity(HistoryActivity::class.java)
                 }
             }
             DRAWER_ITEM_ID_TAG_BLACKLIST -> {
-                if (currentBooru?.type ?: BOORU_TYPE_UNKNOWN
+                if (booruViewModel.currentBooru?.type ?: BOORU_TYPE_UNKNOWN
                     in intArrayOf(BOORU_TYPE_MOE, BOORU_TYPE_DAN, BOORU_TYPE_DAN1, BOORU_TYPE_GEL)) {
                     toActivity(TagBlacklistActivity::class.java)
                 } else {
@@ -185,7 +185,7 @@ class MainActivity : PathActivity(), SharedPreferences.OnSharedPreferenceChangeL
         setContentView(binding.root)
         navController = findNavController(R.id.nav_host_fragment)
         setupNavigationBarBehavior()
-        bottomNavView.setup(navController)
+        bottomNavView.setupWithNavController(navController)
         bottomNavView.setOnItemReselectedListener {
             toListTop()
         }
@@ -195,22 +195,18 @@ class MainActivity : PathActivity(), SharedPreferences.OnSharedPreferenceChangeL
         }
         sp.registerOnSharedPreferenceChangeListener(this)
         setupDrawer()
-        booruViewModel.loadBoorus().observe(this, Observer {
+        booruViewModel.loadBoorus().observe(this, {
             boorus.clear()
             boorus.addAll(it)
             initDrawerHeader()
         })
-        booruViewModel.booru.observe(this, Observer { booru: Booru? ->
-            if (booru != null) {
-                currentBooru = booru
+        booruViewModel.booru.observe(this, { booru: Booru? ->
+            if (booru != null)
                 setupNavigationMenu(booru.type)
-            } else {
-                navController.graph = navController.navInflater.inflate(R.navigation.main_navigation)
-            }
+            else
+                setupNavigationMenu(BOORU_TYPE_UNKNOWN)
         })
-        if (savedInstanceState == null) {
-            booruViewModel.loadBooru(activatedBooruUid)
-        }
+        booruViewModel.loadBooru(activatedBooruUid)
         if (!isOrderSuccess) {
             drawerSliderView.addItemAtPosition(
                 DRAWER_ITEM_ID_PURCHASE_POSITION,
@@ -224,8 +220,9 @@ class MainActivity : PathActivity(), SharedPreferences.OnSharedPreferenceChangeL
             )
         }
         setupInsets { insets ->
-            drawerSliderView.recyclerView.updatePadding(bottom = insets.systemWindowInsetBottom)
-            drawerSliderView.stickyFooterView?.updatePadding(bottom = insets.systemWindowInsetBottom)
+            val bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            drawerSliderView.recyclerView.updatePadding(bottom = bottom)
+            drawerSliderView.stickyFooterView?.updatePadding(bottom = bottom)
         }
         checkUpdate()
     }
@@ -482,12 +479,7 @@ class MainActivity : PathActivity(), SharedPreferences.OnSharedPreferenceChangeL
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
         } else if (isFragmentCanBack()) {
-            val startId = R.id.nav_posts
-            if (navController.currentDestination?.id == startId) {
-                super.onBackPressed()
-            } else {
-                bottomNavView.selectedItemId = startId
-            }
+            super.onBackPressed()
         }
     }
 
